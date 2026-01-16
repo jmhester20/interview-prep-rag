@@ -1,6 +1,9 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import Link from "next/link";
+
 
 type PrepPack = {
   id: string;
@@ -10,6 +13,7 @@ type PrepPack = {
 };
 
 export default function Home() {
+  const router = useRouter();
   const [company, setCompany] = useState("");
   const [role, setRole] = useState("");
   const [packs, setPacks] = useState<PrepPack[]>([]);
@@ -43,15 +47,18 @@ export default function Home() {
         body: JSON.stringify({ company, role }),
       });
 
+      const created = await res.json();
+
       if (!res.ok) {
-        const msg = (await res.json())?.error ?? "Failed to create prep pack.";
-        setError(msg);
+        setError(created?.error ?? "Failed to create prep pack.");
         return;
       }
 
       setCompany("");
       setRole("");
-      await load();
+
+      // send user into the new prep pack
+      router.push(`/prep-packs/${created.id}/upload`);
     } finally {
       setIsSaving(false);
     }
@@ -61,9 +68,11 @@ export default function Home() {
     <main style={{ maxWidth: 720, margin: "0 auto", padding: 24 }}>
       <h1 style={{ fontSize: 28, fontWeight: 700 }}>Interview Prep Packs</h1>
 
+    
+
       <form onSubmit={onCreate} style={{ marginTop: 24, display: "grid", gap: 12 }}>
         <input
-          placeholder="Company (e.g., Palantir)"
+          placeholder="Company (e.g., Amazon)"
           value={company}
           onChange={(e) => setCompany(e.target.value)}
           style={{ padding: 10, border: "1px solid #ddd", borderRadius: 8 }}
@@ -94,17 +103,31 @@ export default function Home() {
       </form>
 
       <h2 style={{ marginTop: 32, fontSize: 18, fontWeight: 600 }}>Existing packs</h2>
-      <ul style={{ marginTop: 12, display: "grid", gap: 10 }}>
+
+      <ul style={{ marginTop: 12, display: "grid", gap: 10, padding: 0, listStyle: "none" }}>
         {packs.map((p) => (
-          <li key={p.id} style={{ border: "1px solid #eee", borderRadius: 10, padding: 12 }}>
-            <div style={{ fontWeight: 600 }}>
-              {p.company} — {p.role}
-            </div>
-            <div style={{ fontSize: 12, opacity: 0.7 }}>
-              Created: {new Date(p.createdAt).toLocaleString()}
-            </div>
+          <li key={p.id}>
+            <Link
+              href={`/prep-packs/${p.id}/upload`}
+              style={{
+                display: "block",
+                border: "1px solid #eee",
+                borderRadius: 10,
+                padding: 12,
+                textDecoration: "none",
+                color: "inherit",
+              }}
+            >
+              <div style={{ fontWeight: 600 }}>
+                {p.company} — {p.role}
+              </div>
+              <div style={{ fontSize: 12, opacity: 0.7 }}>
+                Created: {new Date(p.createdAt).toLocaleString()}
+              </div>
+            </Link>
           </li>
         ))}
+
         {packs.length === 0 && <li style={{ opacity: 0.7 }}>No packs yet.</li>}
       </ul>
     </main>
